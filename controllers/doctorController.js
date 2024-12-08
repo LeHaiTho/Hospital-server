@@ -9,89 +9,113 @@ const { HospitalSpecialty, Hospital, Specialty, Rating } = require("../models");
 const createDoctor = async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const { fullname, email, phone, description, specialty } = req.body;
+    const {
+      licenseCode,
+      fullname,
+      email,
+      phone,
+      description,
+      specialty,
+      gender,
+      birthday,
+      consultation_fee,
+    } = req.body;
+    const file = req.file || null;
+    const imageUrl = file ? `/uploads/${file.filename}` : null;
 
-    // create doctor account
-    const existingAccount = await User.findOne({
-      where: {
-        email,
-      },
+    // Kiểm tra xem bác sĩ đã tồn tại chưa
+    let doctor = await Doctor.findOne({
+      where: { certificate_id: licenseCode },
     });
 
-    if (existingAccount) {
-      await t.rollback();
-      return res.status(400).json({ message: "Email đã tồn tại" });
-    }
-
-    const hashedPassword = await bcrypt.hash(email, 10);
-
-    const newAccount = await User.create(
-      {
-        username: email,
-        fullname,
-        email,
-        phone,
-        password: hashedPassword,
-        role_id: 3,
-      },
-      { transaction: t }
-    );
-
-    // create doctor
-    const newDoctor = await Doctor.create(
-      {
-        description,
-      },
-      { transaction: t }
-    );
-    newDoctor.user_id = newAccount.id;
-    await newDoctor.save({ transaction: t });
-
-    // Liên kết bác sĩ với chuyên khoa
-    // const hospitalSpecialty = await HospitalSpecialty.findAll({
-    //   where: {
-    //     name: specialty,
-    //   },
-    // });
-
+    // Bệnh viện hiện tại
     const hospital = await Hospital.findOne({
       where: {
         manager_id: req.user.id,
       },
     });
 
-    const doctorHospital = await DoctorHospital.create(
-      {
-        doctor_id: newDoctor.id,
-        hospital_id: hospital.id,
-      },
-      { transaction: t }
-    );
-
-    const hospitalSpecialtyId = [];
-
-    for (const spe of specialty) {
-      const hospitalSpecialty = await HospitalSpecialty.findOne({
-        where: {
-          specialty_id: spe,
-          hospital_id: hospital.id,
-        },
-      });
-      hospitalSpecialtyId.push(hospitalSpecialty.id);
-    }
-    for (const specialityId of hospitalSpecialtyId) {
-      const doctorSpecialty = await DoctorSpecialty.create(
+    // Nếu bác sĩ chưa tồn tại, tạo tài khoản và thông tin bác sĩ mới
+    if (!doctor) {
+      const hashedPassword = await bcrypt.hash(email, 10);
+      const newAccount = await User.create(
         {
-          hospital_specialty_id: specialityId,
-          doctor_id: newDoctor.id,
+          username: email,
+          fullname,
+          email,
+          phone,
+          password: hashedPassword,
+          role_id: 3, // Giả sử 3 là role bác sĩ
+          isActive: true,
+          avatar: imageUrl,
+          gender,
+          date_of_birth: birthday,
+          isFirstLogin: true,
+        },
+        { transaction: t }
+      );
+
+      doctor = await Doctor.create(
+        {
+          description,
+          user_id: newAccount.id,
+          certificate_id: licenseCode,
         },
         { transaction: t }
       );
     }
+
+    // Kiểm tra và thêm quan hệ bác sĩ - bệnh viện
+    const existingDoctorHospital = await DoctorHospital.findOne({
+      where: { doctor_id: doctor.id, hospital_id: hospital.id },
+      transaction: t,
+    });
+
+    if (!existingDoctorHospital) {
+      await DoctorHospital.create(
+        {
+          doctor_id: doctor.id,
+          hospital_id: hospital.id,
+        },
+        { transaction: t }
+      );
+    }
+
+    // Thêm các chuyên khoa cho bác sĩ
+    const specialtyIds = specialty.split(",").map((id) => parseInt(id));
+    const hospitalSpecialties = await HospitalSpecialty.findAll({
+      where: { specialty_id: specialtyIds, hospital_id: hospital.id },
+
+      transaction: t,
+    });
+
+    for (const hospitalSpecialty of hospitalSpecialties) {
+      const existingDoctorSpecialty = await DoctorSpecialty.findOne({
+        where: {
+          doctor_id: doctor.id,
+          hospital_specialty_id: hospitalSpecialty.id,
+        },
+
+        transaction: t,
+      });
+
+      if (!existingDoctorSpecialty) {
+        await DoctorSpecialty.create(
+          {
+            doctor_id: doctor.id,
+            hospital_specialty_id: hospitalSpecialty.id,
+            consultation_fee,
+          },
+          { transaction: t }
+        );
+      }
+    }
+
     await t.commit();
-    return res.status(200).json({ hospital });
+    return res.status(200).json({ doctor });
   } catch (error) {
     await t.rollback();
+    console.log(error);
     return res.status(500).json({ message: error.message });
   }
 };
@@ -347,12 +371,27 @@ const getDoctorOfHospital = async (req, res) => {
       {
         model: Doctor,
         as: "doctor",
-        attributes: ["id", "description", "user_id"],
+        attributes: ["id", "description", "user_id", "certificate_id"],
         include: [
           {
             model: User,
             as: "user",
-            attributes: ["id", "fullname", "email", "phone", "avatar"],
+            attributes: [
+              "id",
+              "fullname",
+              "email",
+              "phone",
+              "avatar",
+              "gender",
+              "date_of_birth",
+            ],
+          },
+          {
+            model: DoctorHospital,
+            as: "doctorHospital",
+            where: {
+              hospital_id: hospital.id,
+            },
           },
           {
             model: DoctorSpecialty,
@@ -363,6 +402,9 @@ const getDoctorOfHospital = async (req, res) => {
                 model: HospitalSpecialty,
                 as: "hospitalSpecialty",
                 attributes: ["specialty_id"],
+                where: {
+                  hospital_id: hospital.id,
+                },
                 include: [
                   {
                     model: Specialty,
@@ -384,10 +426,29 @@ const getDoctorOfHospital = async (req, res) => {
     email: item.doctor.user.email,
     phone: item.doctor.user.phone,
     description: item.doctor.description,
-    specialties: item.doctor.doctorSpecialty.map((specialty) => ({
-      id: specialty.hospitalSpecialty.specialty_id,
-      name: specialty.hospitalSpecialty.specialty.name,
-    })),
+    gender: item.doctor.user.gender,
+    birthday: item.doctor.user.date_of_birth,
+    licenseCode: item.doctor.certificate_id,
+    consultation_fee: item.doctor.doctorSpecialty.map(
+      (specialty) => specialty.consultation_fee
+    ),
+    // specialties: item.doctor.doctorSpecialty.map((specialty) => ({
+    //   id: specialty.hospitalSpecialty.specialty_id,
+    //   name: specialty.hospitalSpecialty.specialty.name,
+    // })),
+    // lọc chuyên khoa duy nhất
+    specialties: Array.from(
+      new Map(
+        item.doctor.doctorSpecialty.map((specialty) => [
+          specialty.hospitalSpecialty.specialty_id,
+          {
+            id: specialty.hospitalSpecialty.specialty_id,
+            name: specialty.hospitalSpecialty.specialty.name,
+          },
+        ])
+      ).values()
+    ),
+    isActive: item.doctor.doctorHospital[0].is_active,
   }));
   res.status(200).json({ doctorList });
 };
@@ -544,6 +605,40 @@ const getDoctorById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// lấy bác sĩ theo mã chứng chỉ hành nghề
+const getDoctorByLicenseCode = async (req, res) => {
+  const { licenseCode } = req.query;
+  try {
+    const doctor = await Doctor.findOne({
+      where: { certificate_id: licenseCode },
+      include: [
+        {
+          model: User,
+          as: "user",
+        },
+      ],
+    });
+    if (doctor) {
+      const doctorDetail = {
+        id: doctor.id,
+        fullname: doctor.user.fullname,
+        phone: doctor.user.phone,
+        email: doctor.user.email,
+        avatar: doctor.user.avatar,
+        description: doctor.description,
+        certificate_id: doctor.certificate_id,
+        gender: doctor.user.gender,
+        birthday: doctor.user.date_of_birth,
+      };
+      res.status(200).json({ doctorDetail });
+    } else {
+      res.status(200).json({ doctor });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 module.exports = {
   createDoctor,
   getDoctorOfHospital,
@@ -552,4 +647,6 @@ module.exports = {
   getDoctorDetail,
   filterDoctor,
   getDoctorById,
+  getDoctorByLicenseCode,
+  // createDoctor2,
 };

@@ -2,8 +2,9 @@ const express = require("express");
 const {
   createWorkingDayForHospital,
   getHospitalWorkingDaysTimeSlots,
+  getHospitalScheduleForCalendar,
 } = require("../controllers/workingDayController");
-const { protect } = require("../middlewares/authMiddleware");
+const { protect, resizeTo } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
@@ -16,6 +17,11 @@ router.get(
   "/get-hospital-working-days-time-slots",
   protect,
   getHospitalWorkingDaysTimeSlots
+);
+router.get(
+  "/get-hospital-schedule-for-calendar",
+  protect,
+  getHospitalScheduleForCalendar
 );
 
 module.exports = router;

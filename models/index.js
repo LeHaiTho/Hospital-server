@@ -28,7 +28,7 @@ const PrescriptionItem = require("./prescriptionItemsModel");
 const Question = require("./questionModel");
 const Comment = require("./commentModel");
 const Like = require("./likeModel");
-
+const Room = require("./roomModel");
 User.belongsTo(Role, { foreignKey: "role_id", as: "role" });
 
 Hospital.belongsTo(User, { foreignKey: "manager_id", as: "manager" });
@@ -317,6 +317,10 @@ Like.belongsTo(Question, { foreignKey: "question_id", as: "question" });
 
 Specialty.hasMany(Question, { foreignKey: "specialty_id", as: "questions" });
 Question.belongsTo(Specialty, { foreignKey: "specialty_id", as: "specialty" });
+
+Room.belongsTo(Hospital, { foreignKey: "hospital_id", as: "hospital" });
+Hospital.hasMany(Room, { foreignKey: "hospital_id", as: "rooms" });
+
 module.exports = {
   Doctor,
   DoctorSpecialty,
@@ -334,6 +338,7 @@ module.exports = {
   PushToken,
   Notification,
   Rating,
+  Room,
   ReminderAppointment,
   DoctorUnavailableTime,
   ExamResult,

@@ -260,9 +260,14 @@ const getAppointmentsByUserId = async (req, res) => {
 // lấy chi tiết lịch hẹn theo id
 const getAppointmentById = async (req, res) => {
   const { id } = req.params;
+  const { role, id: userId } = req.user;
+
+  // nếu khác role customer
+  const condition =
+    role && role === "customer" ? { id, user_id: userId } : { id };
   try {
     const appointment = await Appointment.findOne({
-      where: { id, user_id: req.user.id },
+      where: condition,
       include: [
         {
           model: User,
@@ -313,6 +318,14 @@ const getAppointmentById = async (req, res) => {
         },
       ],
     });
+    if (!appointment) {
+      return res.status(404).json({
+        message:
+          role === "customer"
+            ? "Không tìm thấy lịch hẹn của bạn với ID được cung cấp."
+            : "Không tìm thấy lịch hẹn với ID được cung cấp.",
+      });
+    }
     const appointmentDetail = {
       id: appointment.id,
       status: appointment.status,
@@ -344,6 +357,103 @@ const getAppointmentById = async (req, res) => {
   }
 };
 
+// lấy chi tiết lịch hẹn theo id (theo hệ thống bệnh viện khác API)
+const getAppointmentByIdByHospital = async (req, res) => {
+  const { id } = req.params;
+  // nếu khác role customer
+  try {
+    const appointment = await Appointment.findOne({
+      where: { appointment_code: id },
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: [
+            "id",
+            "fullname",
+            "phone",
+            "address",
+            "avatar",
+            "gender",
+            "date_of_birth",
+          ],
+        },
+        {
+          model: FamilyMember,
+          as: "familyMembers",
+        },
+        {
+          model: AppointmentSlot,
+          as: "appointmentSlot",
+          attributes: ["id", "start_time", "end_time"],
+        },
+        {
+          model: DoctorSchedule,
+          as: "doctorSchedule",
+          attributes: ["id", "date", "slot_duration"],
+        },
+        {
+          model: Hospital,
+          as: "hospital",
+          attributes: ["id", "name", "address"],
+        },
+        {
+          model: Doctor,
+          as: "doctor",
+          include: [
+            {
+              model: User,
+              as: "user",
+            },
+          ],
+        },
+        {
+          model: Specialty,
+          as: "specialty",
+          attributes: ["id", "name"],
+        },
+      ],
+    });
+    if (!appointment) {
+      return res.status(404).json({
+        status: 404,
+        message:
+          "Không tìm thấy lịch hẹn với ID được cung cấp. Vui lòng kiểm tra lại.",
+      });
+    }
+
+    const appointmentDetail = {
+      id: appointment.id,
+      status: appointment.status,
+      payment_status: appointment.payment_status,
+      payment_method: appointment.payment_method,
+      reason: appointment.reason_for_visit,
+      appointmentSlot: appointment.appointmentSlot,
+      appointmentFee: appointment.price,
+
+      doctorSchedule: appointment.doctorSchedule,
+      appointment_code: appointment.appointment_code,
+
+      doctor: {
+        id: appointment.doctor.id,
+        fullname: appointment.doctor.user.fullname,
+        avatar: appointment.doctor.user.avatar,
+      },
+      hospital: appointment.hospital,
+      specialty: appointment.specialty,
+      patient: appointment.user,
+      member: appointment.familyMembers,
+      appointment_date: appointment.appointment_date,
+    };
+    res.status(200).json({
+      status: 200,
+      message: "Get appointment successfully",
+      appointmentDetail,
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
 // lịch hẹn đã hoàn thành theo id
 const getAppointmentCompletedById = async (req, res) => {
   try {
@@ -511,6 +621,7 @@ const getAllAppointmentsByHospitalId = async (req, res) => {
         specialty: appointment.specialty,
         patient: appointment.user,
         members: appointment.user.familyMembers,
+        // appointment_date: appointment.appointment_date,
       };
     });
     res.status(200).json({
@@ -1054,4 +1165,5 @@ module.exports = {
   changeAppointment,
   getAppointmentCompletedById,
   cancelAppointment,
+  getAppointmentByIdByHospital,
 };

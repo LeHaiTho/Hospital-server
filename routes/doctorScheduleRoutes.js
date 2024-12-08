@@ -7,6 +7,7 @@ const {
   getDoctorScheduleAfterCurrentDate,
   getDoctorWorkplace,
   getDoctorScheduleBySpecialtyAndHospital,
+  createDoctorSchedule2,
 } = require("../controllers/doctorScheduleController");
 const { protect } = require("../middlewares/authMiddleware");
 
@@ -26,5 +27,5 @@ router.get(
   "/doctor/get-schedule-by-specialty-and-hospital",
   getDoctorScheduleBySpecialtyAndHospital
 );
-
+router.post("/create-schedule2", protect, createDoctorSchedule2);
 module.exports = router;

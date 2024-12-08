@@ -7,6 +7,7 @@ const {
 } = require("../models");
 const HospitalSpecialty = require("../models/hospitalSpecialtyModel");
 const Specialty = require("../models/specialtyModel");
+const { Op } = require("sequelize");
 
 const addHospitalSpecialty = async (req, res) => {
   const { hospital_id, specialty, name, description, consultation_fee } =
@@ -21,15 +22,33 @@ const addHospitalSpecialty = async (req, res) => {
           manager_id: id,
         },
       });
-      await HospitalSpecialty.create({
-        hospital_id: hospital.id,
-        specialty_id: specialty,
-        name,
-        description,
-        consultation_fee,
-        image: imageUrl,
+
+      let existingSpecialty = await HospitalSpecialty.findOne({
+        where: {
+          hospital_id: hospital.id,
+          specialty_id: specialty,
+        },
       });
-      res.status(200).json({ message: "Thêm chuyên khoa thành công!" });
+      if (existingSpecialty) {
+        // Nếu đã tồn tại, cập nhật thông tin mới
+        await existingSpecialty.update({
+          name,
+          description,
+          consultation_fee,
+          image: imageUrl || existingSpecialty.image, // Giữ ảnh cũ nếu không tải ảnh mới
+        });
+        res.status(200).json({ message: "Cập nhật dịch vụ thành công!" });
+      }
+
+      // await HospitalSpecialty.create({
+      //   hospital_id: hospital.id,
+      //   specialty_id: specialty,
+      //   name,
+      //   description,
+      //   consultation_fee,
+      //   image: imageUrl,
+      // });
+      // res.status(200).json({ message: "Thêm chuyên khoa thành công!" });
     }
   } catch (error) {
     console.log(error);
@@ -76,6 +95,8 @@ const getListHospitalSpecialties = async (req, res) => {
       const specialties = await HospitalSpecialty.findAll({
         where: {
           hospital_id: hospital.id,
+          name: { [Op.not]: null }, // Điều kiện name khác null
+          description: { [Op.not]: null }, // Điều kiện description khác null
         },
       });
       res.status(200).json({ specialties });

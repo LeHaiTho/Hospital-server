@@ -7,9 +7,14 @@ const {
 } = require("../controllers/medicalHistoryController");
 const { protect } = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/uploadMiddleware");
+// router.post(
+//   "/receive-medical-history",
+//   upload.array("diagnostic_files"),
+//   receiveMedicalHistory
+// );
 router.post(
   "/receive-medical-history",
-  upload.array("diagnostic_files"),
+  upload.array("files"),
   receiveMedicalHistory
 );
 router.get("/get-medical-history-detail/:id", protect, getMedicalHistoryDetail);

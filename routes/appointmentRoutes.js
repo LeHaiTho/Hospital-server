@@ -11,13 +11,19 @@ const {
   changeAppointment,
   getAppointmentCompletedById,
   cancelAppointment,
+  getAppointmentByIdByHospital,
 } = require("../controllers/apppointmentController");
 
 const { protect, restrictTo } = require("../middlewares/authMiddleware");
 const router = express.Router();
 
 router.post("/create-appointment", protect, createAppointment);
+router.get(
+  "/get-appointment-by-id-by-hospital/:id",
+  getAppointmentByIdByHospital
+);
 router.get("/get-appointment-by-user-id", protect, getAppointmentsByUserId);
+
 router.get(
   "/get-appointment-by-hospital-id",
   protect,
@@ -31,6 +37,7 @@ router.patch(
   updateAppointmentStatusById
 );
 router.get("/get-appointment-by-id/:id", protect, getAppointmentById);
+// router.get("/get-appointment-by-id/:id", getAppointmentById);
 router.get("/soon", protect, getAppointmentSoon);
 router.get("/get-appointment-need-change", protect, getAppointmentNeedChange);
 router.post("/suggest-appointment", protect, suggestAppointment);

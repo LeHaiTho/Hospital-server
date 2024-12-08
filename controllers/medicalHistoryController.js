@@ -15,7 +15,7 @@ const receiveMedicalHistory = async (req, res) => {
     prescriptions,
     imagingDiagnostics,
   } = JSON.parse(req.body.data);
-  console.log(examResults);
+  console.log(req.body.data);
   console.log(files);
   try {
     // update trạng thái lịch hẹn
@@ -81,9 +81,11 @@ const receiveMedicalHistory = async (req, res) => {
     }
 
     return res.status(200).json({
+      status: 200,
       message: "Receive medical history successfully",
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       message: "Internal server error",
       error: error.message,

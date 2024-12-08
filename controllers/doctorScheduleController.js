@@ -5,6 +5,7 @@ const {
   DoctorHospital,
   HospitalSpecialty,
   DoctorSpecialty,
+  WorkingDay,
 } = require("../models");
 const DoctorSchedule = require("../models/doctorScheduleModel");
 const AppointmentSlot = require("../models/appointmentSlotModel");
@@ -58,6 +59,7 @@ const Sequelize = require("sequelize");
 // };
 
 // API tạo lịch làm việc của bác sĩ và chia slot
+// working schedule id 23 đã xóa 2 shift morning và evening 7h00 - 11h00 và 13h00 - 17h00
 const createDoctorSchedule = async (req, res) => {
   const { schedules, doctorId, slotDuration } = req.body;
 
@@ -733,6 +735,72 @@ const getDoctorScheduleBySpecialtyAndHospital = async (req, res) => {
   }
 };
 
+// tạo lịch làm việc của bác sĩ
+const createDoctorSchedule2 = async (req, res) => {
+  const { schedules, doctorId, slotDuration, startDate, endDate } = req.body;
+  try {
+    const hospital = await Hospital.findOne({
+      where: {
+        manager_id: req.user.id,
+      },
+    });
+
+    const schedulePromises = [];
+    const selectedSchedules = schedules.filter((s) =>
+      moment(s.date).isBetween(startDate, endDate, null, "[]")
+    );
+
+    selectedSchedules.forEach((schedule) => {
+      const { date_of_week, time_slots, date } = schedule;
+
+      time_slots.forEach((slot) => {
+        const { shift_type, start, end, room } = slot;
+
+        const schedulePromise = DoctorSchedule.create({
+          doctor_id: doctorId,
+          hospital_id: hospital.id,
+          date: moment(date, "YYYY-MM-DD").format("YYYY-MM-DD"),
+          date_of_week,
+          start_time: start,
+          end_time: end,
+          shift_type,
+          slot_duration: slotDuration,
+          room_id: room,
+        }).then((createdSchedule) => {
+          const startTime = moment(start, "HH:mm:ss");
+          const endTime = moment(end, "HH:mm:ss");
+          const slots = [];
+
+          while (startTime.isBefore(endTime)) {
+            const slotEnd = startTime.clone().add(slotDuration, "minutes");
+
+            if (slotEnd.isAfter(endTime)) break;
+
+            slots.push({
+              doctor_id: doctorId,
+              hospital_id: hospital.id,
+              doctorSchedule_id: createdSchedule.id,
+              start_time: startTime.format("HH:mm:ss"),
+              end_time: slotEnd.format("HH:mm:ss"),
+            });
+
+            startTime.add(slotDuration, "minutes");
+          }
+
+          return AppointmentSlot.bulkCreate(slots);
+        });
+
+        schedulePromises.push(schedulePromise);
+      });
+    });
+    await Promise.all(schedulePromises);
+
+    res.status(200).json({ message: "Tạo lịch thành công" });
+  } catch (error) {
+    console.log("Error creating doctor schedule:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 module.exports = {
   createDoctorSchedule,
   getAppointmentSlotsByDoctorAndDate,
@@ -741,4 +809,5 @@ module.exports = {
   getDoctorScheduleAfterCurrentDate,
   getDoctorWorkplace,
   getDoctorScheduleBySpecialtyAndHospital,
+  createDoctorSchedule2,
 };

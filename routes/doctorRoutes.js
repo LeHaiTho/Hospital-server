@@ -7,11 +7,14 @@ const {
   getDoctorDetail,
   filterDoctor,
   getDoctorById,
+  getDoctorByLicenseCode,
 } = require("../controllers/doctorController");
 const { protect } = require("../middlewares/authMiddleware");
+const upload = require("../middlewares/uploadMiddleware");
 const router = express.Router();
 
-router.post("/create-doctor", protect, createDoctor);
+router.get("/get-doctor-by-license-code", getDoctorByLicenseCode);
+router.post("/create-doctor", protect, upload.single("image"), createDoctor);
 router.get("/list", protect, getDoctorOfHospital);
 router.get("/name-list", protect, getDoctorNameList);
 router.get("/all", getAllDoctor);

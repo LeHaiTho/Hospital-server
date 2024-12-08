@@ -2,6 +2,7 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 const Hospital = require("./hospitalModel");
 const Doctor = require("./doctorModel");
+const Room = require("./roomModel");
 
 const DoctorSchedule = sequelize.define(
   "DoctorSchedule",
@@ -22,6 +23,13 @@ const DoctorSchedule = sequelize.define(
       type: DataTypes.INTEGER,
       references: {
         model: Hospital,
+        key: "id",
+      },
+    },
+    room_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: Room,
         key: "id",
       },
     },

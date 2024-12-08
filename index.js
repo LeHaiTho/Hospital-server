@@ -30,10 +30,11 @@ const doctorUnavailableTimeRoutes = require("./routes/doctorUnavailableTimeRoute
 const paymentRoutes = require("./routes/paymentRoutes");
 const medicalHistoryRoutes = require("./routes/medicalHistoryRoutes");
 const questionRoutes = require("./routes/questionRoutes");
+const roomRoutes = require("./routes/roomRoutes");
 const { startCron } = require("./cron");
 const app = express();
 
-const admin = require("./config/firebaseConfig"); // Import firebaseService
+// const admin = require("./config/firebaseConfig"); // Import firebaseService
 
 // Middleware
 // app.use;
@@ -65,6 +66,8 @@ app.use("/ratings", ratingRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/medical-histories", medicalHistoryRoutes);
 app.use("/questions", questionRoutes);
+app.use("/rooms", roomRoutes);
+
 // Start the server
 // syncDatabase()
 //   .then(() => {
@@ -79,35 +82,23 @@ app.use("/questions", questionRoutes);
 //     console.log("Error:", error);
 //   });
 
-// Tạo route POST cho việc gửi SMS
-// const { Vonage } = require("@vonage/server-sdk");
+const { createServer } = require("node:http");
+const { join } = require("node:path");
+const { Server } = require("socket.io");
+const server = createServer(app);
+const io = new Server(server);
 
-// const vonage = new Vonage({
-//   apiKey: "e7d341de",
-//   apiSecret: "krtCxXGK1mltsEJt",
-// });
+let users = {};
+io.on("connection", (socket) => {
+  console.log("a user connected", socket.id);
 
-// const from = "Vonage APIs";
-// const to = "84374128459";
-// const text = "A text message sent using the Vonage SMS API";
-
-// async function sendSMS() {
-//   await vonage.sms
-//     .send({ to, from, text })
-//     .then((resp) => {
-//       console.log("Message sent successfully");
-//       console.log(resp);
-//     })
-//     .catch((err) => {
-//       console.log("There was an error sending the messages.");
-//       console.error(err);
-//     });
-// }
-
-// sendSMS();
+  socket.on("disconnect", () => {
+    console.log("a user disconnected", socket.id);
+  });
+});
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  startCron();
+server.listen(PORT, () => {
+  // startCron();
   console.log(`Server listening on ${PORT}`);
 });
