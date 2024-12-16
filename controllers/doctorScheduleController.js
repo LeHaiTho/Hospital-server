@@ -6,6 +6,7 @@ const {
   HospitalSpecialty,
   DoctorSpecialty,
   WorkingDay,
+  Room,
 } = require("../models");
 const DoctorSchedule = require("../models/doctorScheduleModel");
 const AppointmentSlot = require("../models/appointmentSlotModel");
@@ -801,6 +802,52 @@ const createDoctorSchedule2 = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// lấy lịch làm việc của bác sĩ theo bệnh viện
+const getAllDoctorSchedule = async (req, res) => {
+  try {
+    const currentDoctor = await Doctor.findOne({
+      where: {
+        user_id: req.user.id,
+      },
+    });
+    const doctorSchedule = await DoctorSchedule.findAll({
+      where: {
+        doctor_id: currentDoctor.id,
+      },
+      include: [
+        {
+          model: Hospital,
+          as: "hospital",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Room,
+          as: "room",
+          attributes: ["id", "name"],
+        },
+        {
+          model: AppointmentSlot,
+          as: "appointmentSlots",
+          attributes: [
+            "id",
+            "start_time",
+            "end_time",
+            "isBooked",
+            "appointment_id",
+          ],
+          where: { isBooked: true }, // Chỉ lấy các slot đã được đặt
+          required: false, // Nếu không có lịch hẹn nào, vẫn trả về lịch làm việc
+        },
+      ],
+    });
+
+    res.status(200).json(Object.values(doctorSchedule));
+  } catch (error) {
+    console.log("Error getting doctor schedule:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 module.exports = {
   createDoctorSchedule,
   getAppointmentSlotsByDoctorAndDate,
@@ -810,4 +857,5 @@ module.exports = {
   getDoctorWorkplace,
   getDoctorScheduleBySpecialtyAndHospital,
   createDoctorSchedule2,
+  getAllDoctorSchedule,
 };

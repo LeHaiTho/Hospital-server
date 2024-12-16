@@ -639,6 +639,106 @@ const getDoctorByLicenseCode = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// lấy danh sách bác sĩ online
+const getAllDoctorOnline = async (req, res) => {
+  const { doctorsOnline } = req.body;
+  console.log("doctorsOnline", doctorsOnline);
+  try {
+    // Điều kiện lọc dựa trên `hospital_id`
+
+    const doctors = await Doctor.findAll({
+      where: {
+        user_id: doctorsOnline,
+      },
+      include: [
+        {
+          model: User,
+          as: "user",
+        },
+        {
+          model: DoctorHospital,
+          as: "doctorHospital",
+          attributes: ["id", "hospital_id"],
+          include: [
+            {
+              model: Hospital,
+              as: "hospital",
+              attributes: ["id", "name"],
+            },
+          ],
+        },
+        {
+          model: DoctorSpecialty,
+          as: "doctorSpecialty",
+          include: [
+            {
+              model: HospitalSpecialty,
+              as: "hospitalSpecialty",
+              include: [
+                {
+                  model: Specialty,
+                  as: "specialty",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          model: Rating,
+          as: "ratings",
+          attributes: ["id", "rating", "comment", "createdAt"],
+          order: [["createdAt", "DESC"]],
+        },
+      ],
+    });
+
+    // Xử lý danh sách bác sĩ và các thông tin liên quan
+    const doctorList = doctors.map((doctor) => {
+      const ratings = doctor.ratings;
+      const totalComments = ratings.length;
+      const averageRating =
+        totalComments > 0
+          ? ratings.reduce((acc, rating) => acc + rating.rating, 0) /
+            totalComments
+          : 0;
+      return {
+        id: doctor.id,
+        fullname: doctor.user.fullname,
+        email: doctor.user.email,
+        avatar: doctor.user.avatar,
+        description: doctor.description,
+        consultation_fee: doctor.doctorSpecialty.map(
+          (specialty) => specialty.consultation_fee
+        ),
+        specialties: Array.from(
+          new Map(
+            doctor.doctorSpecialty.map((specialty) => [
+              specialty.hospitalSpecialty.specialty_id,
+              {
+                id: specialty.hospitalSpecialty.specialty_id,
+                name: specialty.hospitalSpecialty.specialty.name,
+              },
+            ])
+          ).values()
+        ),
+        averageRating: averageRating.toFixed(1),
+        totalComments,
+        hospital: doctor.doctorHospital.map((hospital) => ({
+          id: hospital.hospital.id,
+          name: hospital.hospital.name,
+        })),
+      };
+    });
+
+    // Trả về kết quả
+    res.status(200).json({ doctorList });
+  } catch (error) {
+    console.error("Error fetching doctors:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   createDoctor,
   getDoctorOfHospital,
@@ -648,5 +748,6 @@ module.exports = {
   filterDoctor,
   getDoctorById,
   getDoctorByLicenseCode,
+  getAllDoctorOnline,
   // createDoctor2,
 };

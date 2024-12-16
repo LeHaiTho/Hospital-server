@@ -9,7 +9,7 @@ const createPayment = async (req, res) => {
   const { appointment } = req.body;
   var orderInfo = "Thanh toán lịch hẹn";
   var partnerCode = "MOMO";
-  var redirectUrl = "https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b";
+  var redirectUrl = "exp://192.168.1.10:8081";
   var ipnUrl =
     "https://8041-2001-ee0-51ec-1920-6877-8b0d-acc4-a31b.ngrok-free.app/payments/callbackPayment";
   var requestType = "captureWallet";

@@ -29,6 +29,10 @@ const Question = require("./questionModel");
 const Comment = require("./commentModel");
 const Like = require("./likeModel");
 const Room = require("./roomModel");
+const Message = require("./messageModel");
+const Package = require("./packageModel");
+const Subscription = require("./subscriptionModel");
+const ChatRoom = require("./chatRoomModel");
 User.belongsTo(Role, { foreignKey: "role_id", as: "role" });
 
 Hospital.belongsTo(User, { foreignKey: "manager_id", as: "manager" });
@@ -321,6 +325,42 @@ Question.belongsTo(Specialty, { foreignKey: "specialty_id", as: "specialty" });
 Room.belongsTo(Hospital, { foreignKey: "hospital_id", as: "hospital" });
 Hospital.hasMany(Room, { foreignKey: "hospital_id", as: "rooms" });
 
+Message.belongsTo(User, { foreignKey: "sender_id", as: "sender" });
+Message.belongsTo(User, { foreignKey: "receiver_id", as: "receiver" });
+
+// User.hasMany(Message, { foreignKey: "sender_id", as: "messages" });
+// User.hasMany(Message, { foreignKey: "receiver_id", as: "messages" });
+
+Package.hasMany(Subscription, {
+  foreignKey: "package_id",
+  as: "subscriptions",
+});
+Subscription.belongsTo(Package, { foreignKey: "package_id", as: "packages" });
+
+Subscription.belongsTo(Doctor, { foreignKey: "doctor_id", as: "doctor" });
+Doctor.hasMany(Subscription, { foreignKey: "doctor_id", as: "subscriptions" });
+
+Subscription.belongsTo(User, { foreignKey: "user_id", as: "user" });
+User.hasMany(Subscription, { foreignKey: "user_id", as: "subscriptions" });
+
+ChatRoom.belongsTo(Doctor, { foreignKey: "doctor_id", as: "doctor" });
+
+Message.belongsTo(ChatRoom, { foreignKey: "room_id", as: "chatRoom" });
+ChatRoom.hasMany(Message, { foreignKey: "room_id", as: "messages" });
+
+Doctor.hasMany(ChatRoom, { foreignKey: "doctor_id", as: "chatRooms" });
+
+User.hasMany(ChatRoom, { foreignKey: "user_id", as: "chatRooms" });
+ChatRoom.belongsTo(User, { foreignKey: "user_id", as: "user" });
+
+Room.hasMany(AppointmentSlot, {
+  foreignKey: "room_id",
+  as: "appointmentSlots",
+});
+AppointmentSlot.belongsTo(Room, { foreignKey: "room_id", as: "room" });
+DoctorSchedule.belongsTo(Room, { foreignKey: "room_id", as: "room" });
+Room.hasMany(DoctorSchedule, { foreignKey: "room_id", as: "doctorSchedules" });
+
 module.exports = {
   Doctor,
   DoctorSpecialty,
@@ -349,4 +389,8 @@ module.exports = {
   Question,
   Comment,
   Like,
+  Message,
+  Package,
+  Subscription,
+  ChatRoom,
 };

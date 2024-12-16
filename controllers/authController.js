@@ -34,6 +34,7 @@ const login = async (req, res) => {
       address: user.address,
       date_of_birth: user.date_of_birth,
       gender: user.gender,
+      avatar: user.avatar,
     };
 
     if (user.isFirstLogin) {
@@ -141,6 +142,7 @@ const getUserInfoWithToken = async (req, res) => {
         "address",
         "date_of_birth",
         "gender",
+        "avatar",
       ],
       include: { model: Role, as: "role", attributes: ["name"] },
     });

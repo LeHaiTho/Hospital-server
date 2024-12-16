@@ -9,7 +9,7 @@ const bodyParser = require("body-parser");
 const multer = require("multer");
 const path = require("path");
 const cron = require("node-cron");
-
+const http = require("http");
 // Routes
 const userRoutes = require("./routes/userRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
@@ -31,6 +31,8 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const medicalHistoryRoutes = require("./routes/medicalHistoryRoutes");
 const questionRoutes = require("./routes/questionRoutes");
 const roomRoutes = require("./routes/roomRoutes");
+const chatRoomRoutes = require("./routes/chatRoomRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 const { startCron } = require("./cron");
 const app = express();
 
@@ -67,7 +69,8 @@ app.use("/payments", paymentRoutes);
 app.use("/medical-histories", medicalHistoryRoutes);
 app.use("/questions", questionRoutes);
 app.use("/rooms", roomRoutes);
-
+app.use("/chat-rooms", chatRoomRoutes);
+app.use("/messages", messageRoutes);
 // Start the server
 // syncDatabase()
 //   .then(() => {
@@ -82,20 +85,11 @@ app.use("/rooms", roomRoutes);
 //     console.log("Error:", error);
 //   });
 
-const { createServer } = require("node:http");
-const { join } = require("node:path");
-const { Server } = require("socket.io");
-const server = createServer(app);
-const io = new Server(server);
+const socket = require("./config/socket/socket");
 
-let users = {};
-io.on("connection", (socket) => {
-  console.log("a user connected", socket.id);
+const server = http.createServer(app);
 
-  socket.on("disconnect", () => {
-    console.log("a user disconnected", socket.id);
-  });
-});
+socket(server, process.env.JWT_SECRET);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

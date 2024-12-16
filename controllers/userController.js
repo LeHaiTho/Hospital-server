@@ -1,5 +1,5 @@
 const sequelize = require("../config/database");
-const { Role, FamilyMember } = require("../models");
+const { Role, FamilyMember, Doctor } = require("../models");
 const Hospital = require("../models/hospitalModel");
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
@@ -147,9 +147,33 @@ const getAllProfileOfUser = async (req, res) => {
     res.status(500).json({ message: "Có lỗi khi lấy hồ sơ bệnh nhân" });
   }
 };
-
+// lấy user của bác sĩ
+const getInfoDoctor = async (req, res) => {
+  try {
+    const user = await Doctor.findOne({
+      where: { user_id: req.params.id },
+      attributes: ["id"],
+    });
+    res.status(200).json({ user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Có lỗi khi lấy bác sĩ" });
+  }
+};
+// lấy thông tin của bảng user
+const getInfoUser = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    res.status(200).json({ user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Có lỗi khi lấy thông tin người dùng" });
+  }
+};
 module.exports = {
   createAccount,
   createProfile,
   getAllProfileOfUser,
+  getInfoDoctor,
+  getInfoUser,
 };
