@@ -38,35 +38,56 @@ const createChatRoom = async (req, res) => {
 const getChatRooms = async (req, res) => {
   const { doctor_id } = req.params;
   try {
-    const chatRooms = await ChatRoom.findAll({
-      where: { doctor_id },
+    // const chatRooms = await ChatRoom.findAll({
+    //   where: { doctor_id },
+    //   include: [
+    //     {
+    //       model: User,
+    //       as: "user",
+    //       attributes: {
+    //         exclude: [
+    //           "password",
+    //           "identity_card",
+    //           "password",
+    //           "email",
+    //           "phone",
+    //         ],
+    //       },
+    //     },
+    //   ],
+    // });
+    // const chatRoom_Id = chatRooms.map((chatRoom) => chatRoom.room_id);
+    // const messages = await Message.findAll({
+    //   where: {
+    //     room_id: {
+    //       [Op.in]: chatRoom_Id,
+    //     },
+    //   },
+    //   order: [["createdAt", "DESC"]],
+    // });
+
+    // res.status(200).json({ chatRooms });
+    const rooms = await ChatRoom.findAll({
+      where: {
+        doctor_id,
+      },
       include: [
+        {
+          model: Message,
+          as: "messages",
+          attributes: ["content", "createdAt"],
+          limit: 1,
+          order: [["createdAt", "DESC"]],
+        },
         {
           model: User,
           as: "user",
-          attributes: {
-            exclude: [
-              "password",
-              "identity_card",
-              "password",
-              "email",
-              "phone",
-            ],
-          },
+          attributes: ["id", "fullname", "avatar", "gender", "date_of_birth"],
         },
       ],
     });
-    const chatRoom_Id = chatRooms.map((chatRoom) => chatRoom.room_id);
-    const messages = await Message.findAll({
-      where: {
-        room_id: {
-          [Op.in]: chatRoom_Id,
-        },
-      },
-      order: [["createdAt", "DESC"]],
-    });
 
-    res.status(200).json({ chatRooms, messages });
+    res.json(rooms);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch chat rooms" });

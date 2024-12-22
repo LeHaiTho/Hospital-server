@@ -209,6 +209,50 @@ const registerStaff = async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+// google sign in
+
+const googleSignIn = async (req, res) => {
+  const { name, email, photo } = req.body;
+  try {
+    let user = await User.findOne({
+      where: { email },
+      include: { model: Role, as: "role", attributes: ["name"] }, // Include the role in the response
+    });
+    if (!user) {
+      user = await User.create({
+        role_id: 6,
+        isFirstLogin: false,
+        isActivated: true,
+        email,
+        avatar: photo,
+      });
+    }
+    const tokenPayload = {
+      id: user.id,
+      display_name: name,
+      username: user.username,
+      email: user.email,
+      role: user.role.name,
+      fullname: user.fullname,
+      phone: user.phone,
+      address: user.address,
+      date_of_birth: user.date_of_birth,
+      gender: user.gender,
+      avatar: user.avatar,
+    };
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+    return res.status(200).json({
+      message: "Đăng nhập thành công",
+      token,
+      user: tokenPayload,
+    });
+    console.log("user", user.id);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 module.exports = {
   login,
@@ -216,4 +260,5 @@ module.exports = {
   getUserInfoWithToken,
   registerPatient,
   registerStaff,
+  googleSignIn,
 };

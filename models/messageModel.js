@@ -12,11 +12,11 @@ const Message = sequelize.define(
       autoIncrement: true,
     },
     room_id: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: ChatRoom,
-        key: "room_id",
+        key: "id",
       },
     },
     sender_id: {

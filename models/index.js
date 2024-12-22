@@ -335,6 +335,7 @@ Package.hasMany(Subscription, {
   foreignKey: "package_id",
   as: "subscriptions",
 });
+
 Subscription.belongsTo(Package, { foreignKey: "package_id", as: "packages" });
 
 Subscription.belongsTo(Doctor, { foreignKey: "doctor_id", as: "doctor" });

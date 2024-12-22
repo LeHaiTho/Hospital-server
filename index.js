@@ -33,6 +33,9 @@ const questionRoutes = require("./routes/questionRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 const chatRoomRoutes = require("./routes/chatRoomRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const searchRoutes = require("./routes/searchRoutes");
+const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const chatBotRoutes = require("./routes/chatBotRoutes");
 const { startCron } = require("./cron");
 const app = express();
 
@@ -71,6 +74,9 @@ app.use("/questions", questionRoutes);
 app.use("/rooms", roomRoutes);
 app.use("/chat-rooms", chatRoomRoutes);
 app.use("/messages", messageRoutes);
+app.use("/search", searchRoutes);
+app.use("/subscriptions", subscriptionRoutes);
+app.use("/chatbot", chatBotRoutes);
 // Start the server
 // syncDatabase()
 //   .then(() => {

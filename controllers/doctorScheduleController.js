@@ -196,6 +196,8 @@ const getDoctorScheduleDates = async (req, res) => {
         date: {
           [Op.gte]: currentDate.toDate(), // Từ ngày hiện tại trở đi
         },
+        is_active: true,
+        isDeleted: false,
       },
       order: [["date", "ASC"]],
     });
@@ -610,6 +612,7 @@ const getDoctorWorkplace = async (req, res) => {
 //     throw new Error("Lỗi khi lấy danh sách ngày có lịch khám.");
 //   }
 // };
+// lấy lịch cúa các bác sĩ theo chuyên khoa và bệnh viện.
 const getDoctorScheduleBySpecialtyAndHospital = async (req, res) => {
   const { specialtyID, hospitalID } = req.query;
   try {

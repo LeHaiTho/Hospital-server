@@ -5,6 +5,7 @@ const {
   getUserInfoWithToken,
   registerPatient,
   registerStaff,
+  googleSignIn,
 } = require("../controllers/authController");
 const {
   protect,
@@ -23,4 +24,6 @@ router.post(
 router.post("/register-patient", registerPatient);
 router.get("/user-info", protect, getUserInfoWithToken);
 router.post("/register-staff", protect, restrictTo("manager"), registerStaff);
+
+router.post("/google-sign-in", googleSignIn); // google sign in
 module.exports = router;
